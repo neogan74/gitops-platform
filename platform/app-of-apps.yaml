@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-services
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+
+  source:
+    repoURL: https://github.com/GITHUB_USERNAME/gitops-platform-lab.git
+    targetRevision: main
+    path: platform/observability
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+
+---
+# Note: This is a simplified version for Week 1
+# In production, you would use a proper app-of-apps pattern with directory recurse
+# or separate applications for each component
+#
+# For now, we only deploy kube-prometheus-stack
+# Later weeks will add: Loki, Tempo, Istio, Argo Rollouts, Security tools

@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: applications
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Application workloads
+
+  # Source repositories
+  sourceRepos:
+    - '*'
+
+  # Destination clusters and namespaces
+  destinations:
+    - namespace: 'default'
+      server: https://kubernetes.default.svc
+    - namespace: 'demo-*'
+      server: https://kubernetes.default.svc
+
+  # Cluster resource deny list (apps shouldn't create cluster-scoped resources)
+  clusterResourceBlacklist:
+    - group: ''
+      kind: Namespace
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRole
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRoleBinding
+
+  # Namespace resource allow list
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  # Orphaned resources monitoring
+  orphanedResources:
+    warn: true

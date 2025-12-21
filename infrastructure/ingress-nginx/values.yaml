@@ -1,0 +1,70 @@
+# Ingress-Nginx Helm Values
+# Optimized for Kind cluster
+
+controller:
+  # Use NodePort for Kind (overridden by Kind's extraPortMappings)
+  service:
+    type: NodePort
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 90Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  # Metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false  # Will enable when prometheus-operator is deployed
+
+  # Admission webhook
+  admissionWebhooks:
+    enabled: true
+
+  # Config options
+  config:
+    # Enable real IP forwarding
+    use-forwarded-headers: "true"
+    compute-full-forwarded-for: "true"
+
+    # Logging
+    log-format-upstream: '$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $request_length $request_time [$proxy_upstream_name] [$proxy_alternative_upstream_name] $upstream_addr $upstream_response_length $upstream_response_time $upstream_status $req_id'
+
+    # Performance
+    worker-processes: "2"
+    max-worker-connections: "16384"
+
+    # Security
+    ssl-protocols: "TLSv1.2 TLSv1.3"
+    ssl-ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384"
+
+    # Custom headers
+    add-headers: "ingress-nginx/custom-headers"
+
+  # Node selector to run on control-plane (for Kind)
+  nodeSelector:
+    ingress-ready: "true"
+
+  # Tolerations for control-plane taint
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Equal
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/master
+      operator: Equal
+      effect: NoSchedule
+
+# Default backend
+defaultBackend:
+  enabled: true
+  resources:
+    requests:
+      cpu: 10m
+      memory: 20Mi
+    limits:
+      cpu: 50m
+      memory: 64Mi

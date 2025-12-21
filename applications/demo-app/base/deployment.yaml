@@ -1,0 +1,127 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  labels:
+    app: demo-app
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo-app
+  template:
+    metadata:
+      labels:
+        app: demo-app
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "80"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25-alpine
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: html
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: html
+        configMap:
+          name: demo-app-html
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-app-html
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>GitOps Platform Lab - Demo App</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: 50px auto;
+                padding: 20px;
+                background-color: #f0f0f0;
+            }
+            .container {
+                background-color: white;
+                padding: 30px;
+                border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            h1 {
+                color: #2c3e50;
+            }
+            .status {
+                color: #27ae60;
+                font-weight: bold;
+            }
+            .info {
+                background-color: #ecf0f1;
+                padding: 15px;
+                border-radius: 5px;
+                margin: 20px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🚀 GitOps Platform Lab</h1>
+            <p class="status">✅ Demo Application is running!</p>
+
+            <div class="info">
+                <h3>Platform Components:</h3>
+                <ul>
+                    <li>✅ Kubernetes (Kind)</li>
+                    <li>✅ ArgoCD</li>
+                    <li>✅ Prometheus + Grafana</li>
+                    <li>✅ Cert-Manager</li>
+                    <li>✅ Nginx Ingress</li>
+                </ul>
+            </div>
+
+            <p><strong>Version:</strong> v1.0.0 (nginx)</p>
+            <p><strong>Environment:</strong> Development</p>
+
+            <div class="info">
+                <p>This is a placeholder application for Week 1.</p>
+                <p>In Week 2, this will be replaced with a Go application featuring:</p>
+                <ul>
+                    <li>OpenTelemetry tracing</li>
+                    <li>Prometheus metrics</li>
+                    <li>Structured logging</li>
+                    <li>Full observability stack integration</li>
+                </ul>
+            </div>
+        </div>
+    </body>
+    </html>

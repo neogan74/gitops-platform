@@ -1,0 +1,14 @@
+# ArgoCD Installation Manifest
+# This file references the official ArgoCD installation manifest
+# Run: kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+#
+# Or download it locally:
+# curl -L https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml -o infrastructure/argocd/install.yaml
+#
+# For this bootstrap, we'll use the URL directly in the Makefile
+# This file serves as a placeholder and documentation
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd

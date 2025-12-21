@@ -1,0 +1,50 @@
+# Cert-Manager Helm Values
+# Using default values from the official chart with CRDs installation
+
+installCRDs: true
+
+# Resource requests and limits
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
+
+# Pod security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Enable prometheus metrics
+prometheus:
+  enabled: true
+  servicemonitor:
+    enabled: false  # Will enable this when prometheus-operator is deployed
+
+# Global settings
+global:
+  leaderElection:
+    namespace: cert-manager
+
+# Webhook settings
+webhook:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+# CA Injector settings
+cainjector:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi

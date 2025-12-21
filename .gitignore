@@ -1,0 +1,33 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
+
+# Secrets (if any)
+secrets/
+*.secret
+*.key
+
+# Local testing
+test-output/
+*.test
+
+# Helm
+charts/
+*.tgz
+
+# Terraform (for future use)
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl

@@ -1,0 +1,160 @@
+.PHONY: help
+help: ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: create-cluster
+create-cluster: ## Create Kind cluster with local registry
+	@echo "🚀 Creating Kind cluster..."
+	@./scripts/create-registry.sh
+	@kind create cluster --config infrastructure/kind/cluster-config.yaml
+	@kubectl cluster-info --context kind-gitops-platform
+	@echo "✅ Cluster created successfully!"
+
+.PHONY: delete-cluster
+delete-cluster: ## Delete Kind cluster and registry
+	@echo "🗑️  Deleting Kind cluster..."
+	@kind delete cluster --name gitops-platform || true
+	@docker stop kind-registry 2>/dev/null || true
+	@docker rm kind-registry 2>/dev/null || true
+	@echo "✅ Cluster deleted!"
+
+.PHONY: install-argocd
+install-argocd: ## Install ArgoCD
+	@echo "📦 Installing ArgoCD..."
+	@kubectl create namespace argocd 2>/dev/null || true
+	@kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+	@echo "⏳ Waiting for ArgoCD to be ready..."
+	@kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
+	@kubectl apply -n argocd -f infrastructure/argocd/argocd-cm.yaml
+	@kubectl apply -n argocd -f infrastructure/argocd/argocd-rbac-cm.yaml
+	@kubectl apply -n argocd -f infrastructure/argocd/projects/
+	@kubectl rollout restart deployment/argocd-server -n argocd
+	@echo "✅ ArgoCD installed!"
+	@echo ""
+	@echo "🔑 ArgoCD Admin Password:"
+	@kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" 2>/dev/null | base64 -d && echo
+	@echo ""
+	@echo "📊 Access ArgoCD UI:"
+	@echo "   kubectl port-forward svc/argocd-server -n argocd 8080:443"
+	@echo "   Then visit: https://localhost:8080"
+	@echo "   User: admin"
+
+.PHONY: install-cert-manager
+install-cert-manager: ## Install cert-manager
+	@echo "📦 Installing cert-manager..."
+	@kubectl create namespace cert-manager 2>/dev/null || true
+	@helm repo add jetstack https://charts.jetstack.io 2>/dev/null || true
+	@helm repo update
+	@helm upgrade --install cert-manager jetstack/cert-manager \
+		--namespace cert-manager \
+		--version v1.13.3 \
+		--set installCRDs=true \
+		--values infrastructure/cert-manager/values.yaml \
+		--wait
+	@echo "⏳ Waiting for cert-manager..."
+	@kubectl wait --for=condition=available --timeout=300s deployment/cert-manager -n cert-manager
+	@kubectl apply -f infrastructure/cert-manager/cluster-issuer.yaml
+	@echo "✅ cert-manager installed!"
+
+.PHONY: install-ingress
+install-ingress: ## Install Nginx Ingress Controller
+	@echo "📦 Installing Nginx Ingress..."
+	@kubectl create namespace ingress-nginx 2>/dev/null || true
+	@helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx 2>/dev/null || true
+	@helm repo update
+	@helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+		--namespace ingress-nginx \
+		--version 4.8.3 \
+		--values infrastructure/ingress-nginx/values.yaml \
+		--wait
+	@echo "⏳ Waiting for ingress controller..."
+	@kubectl wait --namespace ingress-nginx \
+		--for=condition=ready pod \
+		--selector=app.kubernetes.io/component=controller \
+		--timeout=300s
+	@echo "✅ Ingress controller installed!"
+
+.PHONY: bootstrap
+bootstrap: create-cluster install-argocd install-cert-manager install-ingress ## Full cluster bootstrap
+	@echo ""
+	@echo "🎉 Bootstrap complete!"
+	@echo ""
+	@echo "📊 Cluster Status:"
+	@kubectl get nodes
+	@echo ""
+	@echo "📦 Namespaces:"
+	@kubectl get namespaces
+	@echo ""
+	@echo "Next steps:"
+	@echo "  1. Deploy platform services: make deploy-platform"
+	@echo "  2. Deploy demo application: make deploy-apps"
+	@echo ""
+	@echo "📊 Access ArgoCD UI:"
+	@echo "   kubectl port-forward svc/argocd-server -n argocd 8080:443"
+	@echo "   User: admin"
+	@echo "   Password: run 'make argocd-password'"
+
+.PHONY: argocd-password
+argocd-password: ## Get ArgoCD admin password
+	@kubectl -n argocd get secret argocd-initial-admin-secret \
+		-o jsonpath="{.data.password}" 2>/dev/null | base64 -d && echo
+
+.PHONY: deploy-platform
+deploy-platform: ## Deploy platform services via ArgoCD
+	@echo "🚀 Deploying platform services..."
+	@kubectl apply -f platform/app-of-apps.yaml
+	@echo "✅ Platform services deployed!"
+	@echo "📊 Check status: kubectl get applications -n argocd"
+
+.PHONY: deploy-apps
+deploy-apps: ## Deploy demo applications
+	@echo "🚀 Deploying applications..."
+	@kubectl apply -f applications/app-of-apps.yaml
+	@echo "✅ Applications deployed!"
+	@echo "📊 Check status: kubectl get applications -n argocd"
+
+.PHONY: status
+status: ## Show ArgoCD applications status
+	@echo "📊 ArgoCD Applications Status:"
+	@kubectl get applications -n argocd
+	@echo ""
+	@echo "📦 Platform Services:"
+	@kubectl get pods -n monitoring 2>/dev/null || echo "Monitoring namespace not yet created"
+	@echo ""
+	@echo "🚀 Applications:"
+	@kubectl get pods -n default
+
+.PHONY: sync-all
+sync-all: ## Sync all ArgoCD applications
+	@echo "🔄 Syncing all applications..."
+	@kubectl get applications -n argocd -o name | xargs -I {} kubectl patch {} -n argocd --type merge -p '{"operation":{"sync":{}}}'
+	@echo "✅ Sync triggered for all applications"
+
+.PHONY: check-cluster
+check-cluster: ## Check cluster health
+	@echo "🔍 Checking cluster health..."
+	@echo ""
+	@echo "Nodes:"
+	@kubectl get nodes
+	@echo ""
+	@echo "System Pods:"
+	@kubectl get pods -n kube-system
+	@echo ""
+	@echo "ArgoCD:"
+	@kubectl get pods -n argocd
+	@echo ""
+	@echo "Cert-Manager:"
+	@kubectl get pods -n cert-manager
+	@echo ""
+	@echo "Ingress:"
+	@kubectl get pods -n ingress-nginx
+
+.PHONY: logs-argocd
+logs-argocd: ## Show ArgoCD server logs
+	@kubectl logs -n argocd deployment/argocd-server --tail=100 -f
+
+.PHONY: clean
+clean: delete-cluster ## Clean everything (delete cluster and registry)
+	@echo "🧹 Cleanup complete!"
+
+.DEFAULT_GOAL := help

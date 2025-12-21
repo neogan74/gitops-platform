@@ -1,0 +1,173 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 55.5.0
+    helm:
+      releaseName: kube-prometheus-stack
+      values: |
+        # Prometheus configuration
+        prometheus:
+          prometheusSpec:
+            retention: 7d
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 10Gi
+
+            resources:
+              requests:
+                cpu: 200m
+                memory: 512Mi
+              limits:
+                cpu: 1000m
+                memory: 2Gi
+
+            # Additional scrape configs for demo app
+            additionalScrapeConfigs:
+            - job_name: 'demo-app'
+              kubernetes_sd_configs:
+              - role: pod
+              relabel_configs:
+              - source_labels: [__meta_kubernetes_pod_label_app]
+                action: keep
+                regex: demo-app
+              - source_labels: [__meta_kubernetes_pod_name]
+                target_label: pod
+              - source_labels: [__meta_kubernetes_namespace]
+                target_label: namespace
+
+        # Grafana configuration
+        grafana:
+          enabled: true
+          adminPassword: admin  # TODO: Change in production!
+
+          persistence:
+            enabled: true
+            size: 5Gi
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          # Ingress for Grafana
+          ingress:
+            enabled: true
+            ingressClassName: nginx
+            hosts:
+              - grafana.local
+            annotations:
+              cert-manager.io/cluster-issuer: selfsigned-ca-issuer
+            tls:
+            - secretName: grafana-tls
+              hosts:
+                - grafana.local
+
+          # Additional datasources (Loki, Tempo will be added later)
+          additionalDataSources:
+          - name: Loki
+            type: loki
+            url: http://loki-gateway.monitoring.svc.cluster.local
+            access: proxy
+            isDefault: false
+            jsonData:
+              maxLines: 1000
+          - name: Tempo
+            type: tempo
+            url: http://tempo.monitoring.svc.cluster.local:3100
+            access: proxy
+            isDefault: false
+            jsonData:
+              httpMethod: GET
+              tracesToLogs:
+                datasourceUid: loki
+                tags: ['pod', 'namespace']
+              tracesToMetrics:
+                datasourceUid: prometheus
+
+          # Pre-installed dashboards
+          dashboardProviders:
+            dashboardproviders.yaml:
+              apiVersion: 1
+              providers:
+              - name: 'default'
+                orgId: 1
+                folder: 'Platform'
+                type: file
+                disableDeletion: false
+                options:
+                  path: /var/lib/grafana/dashboards/default
+
+          dashboards:
+            default:
+              kubernetes-cluster:
+                gnetId: 7249
+                revision: 1
+                datasource: Prometheus
+              node-exporter:
+                gnetId: 1860
+                revision: 31
+                datasource: Prometheus
+              pod-monitoring:
+                gnetId: 6417
+                revision: 1
+                datasource: Prometheus
+
+        # Alertmanager configuration
+        alertmanager:
+          enabled: true
+          alertmanagerSpec:
+            resources:
+              requests:
+                cpu: 50m
+                memory: 64Mi
+              limits:
+                cpu: 200m
+                memory: 256Mi
+
+          config:
+            route:
+              group_by: ['alertname', 'cluster', 'namespace']
+              group_wait: 10s
+              group_interval: 10s
+              repeat_interval: 12h
+              receiver: 'null'
+            receivers:
+            - name: 'null'
+
+        # Disable kubeEtcd (not available in Kind)
+        kubeEtcd:
+          enabled: false
+
+        # Disable kubeScheduler and kubeControllerManager for Kind
+        kubeScheduler:
+          enabled: false
+        kubeControllerManager:
+          enabled: false
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true
