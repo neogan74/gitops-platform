@@ -9,7 +9,7 @@ spec:
   project: applications
 
   source:
-    repoURL: https://github.com/GITHUB_USERNAME/gitops-platform-lab.git
+    repoURL: https://github.com/neogan74/gitops-platform.git
     targetRevision: main
     path: applications/demo-app/overlays/dev
 

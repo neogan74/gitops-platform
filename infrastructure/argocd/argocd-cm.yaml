@@ -9,7 +9,7 @@ metadata:
 data:
   # Repository credentials (update with your GitHub repo)
   repositories: |
-    - url: https://github.com/GITHUB_USERNAME/gitops-platform-lab.git
+    - url: https://github.com/neogan74/gitops-platform.git
       type: git
 
   # Resource customizations for Argo Rollouts
@@ -34,7 +34,7 @@ data:
 
   # UI customizations
   ui.bannercontent: "GitOps Platform Lab - Demo Environment"
-  ui.bannerurl: "https://github.com/GITHUB_USERNAME/gitops-platform-lab"
+  ui.bannerurl: "https://github.com/neogan74/gitops-platform"
 
   # Application settings
   application.instanceLabelKey: argocd.argoproj.io/instance
