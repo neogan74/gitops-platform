@@ -1,0 +1,83 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argo-rollouts
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+
+  source:
+    repoURL: https://argoproj.github.io/argo-helm
+    chart: argo-rollouts
+    targetRevision: 2.38.1
+    helm:
+      values: |
+        # Dashboard
+        dashboard:
+          enabled: true
+          ingress:
+            enabled: true
+            ingressClassName: nginx
+            hosts:
+              - rollouts.local
+            annotations:
+              cert-manager.io/cluster-issuer: selfsigned-cluster-issuer
+            tls:
+              - secretName: rollouts-tls
+                hosts:
+                  - rollouts.local
+
+        # Controller configuration
+        controller:
+          replicas: 1
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+
+          # Metrics
+          metrics:
+            enabled: true
+            serviceMonitor:
+              enabled: true
+              namespace: monitoring
+              additionalLabels:
+                release: kube-prometheus-stack
+
+        # Notifications (optional, for Slack/webhook alerts)
+        notifications:
+          secret:
+            create: false
+
+        # Service Account
+        serviceAccount:
+          create: true
+          name: argo-rollouts
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argo-rollouts
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jqPathExpressions:
+        - .spec.replicas

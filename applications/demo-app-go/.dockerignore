@@ -1,0 +1,21 @@
+# Kubernetes manifests
+k8s/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+demo-app
+
+# Test files
+*_test.go

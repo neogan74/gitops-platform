@@ -1,0 +1,29 @@
+# Allow egress to Kubernetes API server
+# Required for applications using Kubernetes client libraries
+
+---
+# Allow API access from production (if needed)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-kubernetes-api
+  namespace: production
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  # Allow to Kubernetes API server
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: default
+    ports:
+    - protocol: TCP
+      port: 443
+  # Also allow to master nodes (for API server access)
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 6443

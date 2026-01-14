@@ -1,33 +1,127 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: platform-services
+  name: platform-observability
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: platform
-
   source:
     repoURL: https://github.com/neogan74/gitops-platform.git
     targetRevision: main
     path: platform/observability
-
+    directory:
+      recurse: true
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
-
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
+      - CreateNamespace=true
 
 ---
-# Note: This is a simplified version for Week 1
-# In production, you would use a proper app-of-apps pattern with directory recurse
-# or separate applications for each component
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-service-mesh
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/neogan74/gitops-platform.git
+    targetRevision: main
+    path: platform/service-mesh/istio
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-progressive-delivery
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/neogan74/gitops-platform.git
+    targetRevision: main
+    path: platform/progressive-delivery/argo-rollouts
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-security-falco
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/neogan74/gitops-platform.git
+    targetRevision: main
+    path: platform/security/falco
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-security-trivy
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/neogan74/gitops-platform.git
+    targetRevision: main
+    path: platform/security/trivy-operator
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+# Note: Pod Security Standards and Network Policies are applied directly
+# via kubectl as they are namespace-level configurations, not ArgoCD apps
 #
-# For now, we only deploy kube-prometheus-stack
-# Later weeks will add: Loki, Tempo, Istio, Argo Rollouts, Security tools
+# Apply with:
+# kubectl apply -f platform/security/pod-security/namespace-labels.yaml
+# kubectl apply -f platform/security/network-policies/

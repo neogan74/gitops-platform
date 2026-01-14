@@ -1,0 +1,68 @@
+# Allow traffic from Nginx Ingress Controller to application pods
+
+---
+# Allow ingress controller to reach apps in default namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-controller
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: demo-app-go
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow from ingress-nginx namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8080
+
+---
+# Allow ingress controller to reach apps in staging namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-controller
+  namespace: staging
+spec:
+  podSelector:
+    matchLabels:
+      app: demo-app-go
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8080
+
+---
+# Allow ingress controller to reach apps in production namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-controller
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: demo-app-go
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8080
