@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-app-go
+spec:
+  tls:
+  - hosts:
+    - prod-demo.local
+    secretName: prod-demo-app-go-tls
+  rules:
+  - host: prod-demo.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: prod-demo-app-go
+            port:
+              name: http

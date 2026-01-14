@@ -1,0 +1,203 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: falco
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+
+  source:
+    repoURL: https://falcosecurity.github.io/charts
+    chart: falco
+    targetRevision: 4.9.1
+    helm:
+      values: |
+        # Falco configuration for runtime security monitoring
+
+        # Driver configuration
+        driver:
+          enabled: true
+          kind: modern_ebpf  # Use eBPF for better compatibility
+
+        # Collectors configuration
+        collectors:
+          enabled: true
+
+        # Controller configuration
+        controller:
+          kind: daemonset  # Run on every node
+          daemonset:
+            updateStrategy:
+              type: RollingUpdate
+
+        # Resource limits
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+
+        # Falco configuration
+        falco:
+          # Load default rules
+          rules_file:
+            - /etc/falco/falco_rules.yaml
+            - /etc/falco/falco_rules.local.yaml
+            - /etc/falco/k8s_audit_rules.yaml
+            - /etc/falco/rules.d
+
+          # Output configuration
+          json_output: true
+          json_include_output_property: true
+          json_include_tags_property: true
+
+          # Logging
+          log_stderr: true
+          log_syslog: false
+          log_level: info
+
+          # Buffering
+          buffered_outputs: true
+          outputs_queue:
+            capacity: 1000000
+
+          # Priority threshold
+          priority: notice  # notice, warning, error, critical, alert, emergency
+
+          # Rate limiting
+          outputs:
+            rate: 1
+            max_burst: 1000
+
+        # Custom rules
+        customRules:
+          custom-rules.yaml: |-
+            # Custom security rules for GitOps platform
+
+            # Alert on shell execution in containers
+            - rule: Shell Spawned in Container
+              desc: Detect shell execution inside containers
+              condition: >
+                spawned_process and
+                container and
+                shell_procs and
+                proc.pname exists and
+                not container.image.repository in (allowed_images)
+              output: >
+                Shell spawned in container
+                (user=%user.name container_id=%container.id
+                container_name=%container.name image=%container.image.repository
+                shell=%proc.name parent=%proc.pname cmdline=%proc.cmdline)
+              priority: WARNING
+              tags: [container, shell, mitre_execution]
+
+            # Alert on privilege escalation attempts
+            - rule: Privilege Escalation via Setuid
+              desc: Detect privilege escalation attempts
+              condition: >
+                spawned_process and
+                proc.args contains "chmod u+s"
+              output: >
+                Potential privilege escalation detected
+                (user=%user.name command=%proc.cmdline container=%container.name)
+              priority: CRITICAL
+              tags: [privilege_escalation, mitre_privilege_escalation]
+
+            # Alert on sensitive file access
+            - rule: Sensitive File Access
+              desc: Detect access to sensitive files
+              condition: >
+                open_read and
+                container and
+                (fd.name startswith /etc/shadow or
+                 fd.name startswith /etc/passwd or
+                 fd.name contains /id_rsa or
+                 fd.name contains /authorized_keys)
+              output: >
+                Sensitive file accessed
+                (user=%user.name file=%fd.name container=%container.name
+                command=%proc.cmdline)
+              priority: WARNING
+              tags: [file, credentials]
+
+            # Alert on package management tools
+            - rule: Package Management in Container
+              desc: Detect package managers running in containers
+              condition: >
+                spawned_process and
+                container and
+                package_mgmt_procs and
+                not container.image.repository in (build_images)
+              output: >
+                Package management tool executed in container
+                (user=%user.name command=%proc.cmdline container=%container.name
+                image=%container.image.repository)
+              priority: WARNING
+              tags: [process, software_mgmt]
+
+            # Alert on network tool usage
+            - rule: Network Tool Executed in Container
+              desc: Detect network reconnaissance tools
+              condition: >
+                spawned_process and
+                container and
+                (proc.name in (netcat, ncat, nc, nmap, socat) or
+                 proc.name startswith "nc.")
+              output: >
+                Network tool executed in container
+                (user=%user.name tool=%proc.name cmdline=%proc.cmdline
+                container=%container.name)
+              priority: WARNING
+              tags: [network, mitre_discovery]
+
+        # Falcosidekick for alert routing (optional)
+        falcosidekick:
+          enabled: false
+          # To enable Slack/webhook notifications:
+          # enabled: true
+          # config:
+          #   slack:
+          #     webhookurl: "https://hooks.slack.com/services/XXX"
+          #     minimumpriority: "warning"
+
+        # Service monitor for Prometheus integration
+        serviceMonitor:
+          enabled: true
+          namespace: monitoring
+          labels:
+            release: kube-prometheus-stack
+          interval: 30s
+          scrapeTimeout: 10s
+
+        # Grafana dashboards
+        grafanaDashboard:
+          enabled: true
+          namespace: monitoring
+
+        # Tolerations to run on all nodes
+        tolerations:
+          - effect: NoSchedule
+            key: node-role.kubernetes.io/master
+          - effect: NoSchedule
+            key: node-role.kubernetes.io/control-plane
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: falco
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

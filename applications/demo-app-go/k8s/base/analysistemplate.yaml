@@ -1,0 +1,74 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate
+  labels:
+    app: demo-app-go
+spec:
+  metrics:
+  # Success rate metric - must be >= 99%
+  - name: success-rate
+    interval: 30s
+    count: 3
+    successCondition: result[0] >= 0.99
+    failureLimit: 2
+    provider:
+      prometheus:
+        address: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          sum(rate(http_requests_total{app="demo-app-go",status=~"2.."}[2m]))
+          /
+          sum(rate(http_requests_total{app="demo-app-go"}[2m]))
+
+  # p95 latency metric - must be < 500ms
+  - name: latency-p95
+    interval: 30s
+    count: 3
+    successCondition: result[0] < 0.5
+    failureLimit: 2
+    provider:
+      prometheus:
+        address: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{app="demo-app-go"}[2m])) by (le)
+          )
+
+  # Error rate metric - must be < 1%
+  - name: error-rate
+    interval: 30s
+    count: 3
+    successCondition: result[0] < 0.01
+    failureLimit: 2
+    provider:
+      prometheus:
+        address: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          sum(rate(http_requests_total{app="demo-app-go",status=~"5.."}[2m]))
+          /
+          sum(rate(http_requests_total{app="demo-app-go"}[2m]))
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: error-rate-only
+  labels:
+    app: demo-app-go
+spec:
+  metrics:
+  # Simple error rate check for faster rollouts
+  - name: error-rate
+    interval: 20s
+    count: 5
+    successCondition: result[0] < 0.05
+    failureLimit: 3
+    provider:
+      prometheus:
+        address: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+        query: |
+          sum(rate(http_requests_total{app="demo-app-go",status=~"5.."}[2m]))
+          /
+          sum(rate(http_requests_total{app="demo-app-go"}[2m]))
+          or
+          vector(0)

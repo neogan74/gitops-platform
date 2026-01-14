@@ -1,0 +1,56 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: demo-app-go
+spec:
+  replicas: 3
+
+  strategy:
+    blueGreen:
+      # Service names
+      activeService: demo-app-go
+      previewService: demo-app-go-canary
+
+      # Auto promotion settings
+      autoPromotionEnabled: false  # Manual approval required in production
+      autoPromotionSeconds: 300    # Auto-promote after 5 minutes if enabled
+
+      # Preview replica count
+      previewReplicaCount: 1
+
+      # Scale down delay
+      scaleDownDelaySeconds: 30
+      scaleDownDelayRevisionLimit: 2
+
+      # Pre-promotion analysis
+      prePromotionAnalysis:
+        templates:
+        - templateName: success-rate
+        args:
+        - name: service-name
+          value: demo-app-go
+
+      # Post-promotion analysis
+      postPromotionAnalysis:
+        templates:
+        - templateName: success-rate
+        args:
+        - name: service-name
+          value: demo-app-go
+
+  template:
+    spec:
+      containers:
+      - name: demo-app
+        env:
+        - name: VERSION
+          value: "v1.0.0-production"
+        - name: ENVIRONMENT
+          value: "production"
+        resources:
+          requests:
+            cpu: 200m
+            memory: 128Mi
+          limits:
+            cpu: 1000m
+            memory: 256Mi

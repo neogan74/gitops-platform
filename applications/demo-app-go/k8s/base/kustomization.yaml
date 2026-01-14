@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: default
+
+resources:
+  - rollout.yaml
+  - service.yaml
+  - ingress.yaml
+  - servicemonitor.yaml
+  - analysistemplate.yaml
+
+commonLabels:
+  app.kubernetes.io/name: demo-app-go
+  app.kubernetes.io/part-of: gitops-platform
+
+images:
+  - name: localhost:5001/demo-app-go
+    newTag: v1.0.0

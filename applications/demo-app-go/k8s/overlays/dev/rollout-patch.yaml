@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: demo-app-go
+spec:
+  replicas: 1
+
+  # Simple immediate rollout for dev (no progressive delivery)
+  strategy:
+    canary:
+      steps:
+      - setWeight: 100
+
+  template:
+    spec:
+      containers:
+      - name: demo-app
+        env:
+        - name: VERSION
+          value: "dev"
+        - name: ENVIRONMENT
+          value: "development"
+        resources:
+          requests:
+            cpu: 50m
+            memory: 32Mi
+          limits:
+            cpu: 200m
+            memory: 64Mi
