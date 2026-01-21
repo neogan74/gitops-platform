@@ -1,4 +1,4 @@
-# GitOps Platform Lab
+ # GitOps Platform Lab
 
 Production-ready Kubernetes platform demonstrating platform engineering and SRE best practices.
 
@@ -18,7 +18,7 @@ A complete GitOps-driven platform showcasing:
 - **Observability**: Prometheus, Grafana, Loki, Tempo, OpenTelemetry
 - **Service Mesh**: Istio
 - **Progressive Delivery**: Argo Rollouts
-- **Security**: Falco, Trivy, cert-manager
+- **Security**: Falco, Trivy, External Secrets, cert-manager
 - **Ingress**: Nginx Ingress Controller
 
 ## Quick Start

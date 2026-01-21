@@ -14,10 +14,10 @@ Currently, the platform relies on manual secret management or unencrypted secret
 - Alternatively, Sealed Secrets is easier for purely Git-based workflows without external dependencies.
 
 **Acceptance Criteria:**
-- [ ] Secret management operator is installed via ArgoCD.
-- [ ] A demo secret is safely committed to the repo (encrypted or reference).
-- [ ] The secret is successfully synced and available as a Kubernetes Secret in the cluster.
-- [ ] Documentation added on how to add new secrets.
+- [x] Secret management operator is installed via ArgoCD.
+- [x] A demo secret is safely committed to the repo (encrypted or reference).
+- [x] The secret is successfully synced and available as a Kubernetes Secret in the cluster.
+- [x] Documentation added on how to add new secrets.
 
 ### 2. Policy Enforcement (Policy-as-Code)
 **Description:**

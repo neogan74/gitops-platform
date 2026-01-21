@@ -44,6 +44,7 @@ func main() {
 	mux.HandleFunc("/api/data", handleData)
 	mux.HandleFunc("/api/slow", handleSlow)
 	mux.HandleFunc("/api/error", handleError)
+	mux.HandleFunc("/api/secrets", handleSecrets)
 
 	// Metrics endpoint
 	mux.Handle("/metrics", promhttp.Handler())

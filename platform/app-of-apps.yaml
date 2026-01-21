@@ -119,6 +119,30 @@ spec:
     syncOptions:
       - CreateNamespace=true
 
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-security-external-secrets
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/neogan74/gitops-platform.git
+    targetRevision: main
+    path: platform/security/external-secrets
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
 # Note: Pod Security Standards and Network Policies are applied directly
 # via kubectl as they are namespace-level configurations, not ArgoCD apps
 #

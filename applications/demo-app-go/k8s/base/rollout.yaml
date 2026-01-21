@@ -36,6 +36,13 @@ spec:
           value: "8080"
         - name: VERSION
           value: "v1.0.0"
+        # Secret from External Secrets Operator
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: demo-app-secrets
+              key: api-key
+              optional: true  # Allow pod to start even if secret not yet synced
 
         resources:
           requests:
