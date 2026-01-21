@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -51,6 +52,32 @@ func handleError(w http.ResponseWriter, r *http.Request) {
 		"message":   "Success despite error endpoint",
 		"timestamp": time.Now().Format(time.RFC3339),
 		"lucky":     true,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(data)
+}
+
+// handleSecrets shows secret status from External Secrets Operator
+func handleSecrets(w http.ResponseWriter, r *http.Request) {
+	apiKey := os.Getenv("API_KEY")
+
+	// Mask the secret for display (show first 4 chars only)
+	masked := "not set"
+	status := "unavailable"
+	if len(apiKey) > 4 {
+		masked = apiKey[:4] + "****"
+		status = "available"
+	} else if len(apiKey) > 0 {
+		masked = "****"
+		status = "available"
+	}
+
+	data := map[string]interface{}{
+		"api_key_preview": masked,
+		"status":          status,
+		"source":          "external-secrets-operator",
+		"timestamp":       time.Now().Format(time.RFC3339),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
