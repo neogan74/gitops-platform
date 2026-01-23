@@ -28,8 +28,8 @@ While Pod Security Standards are good, a dynamic admission controller is needed 
 - Kyverno is often preferred for Kubernetes-native simplicity.
 
 **Acceptance Criteria:**
-- [ ] Kyverno/Gatekeeper installed via ArgoCD.
-- [ ] Basic policies applied (e.g., "Require Labels", "Disallow :latest tag", "Restrict HostPath").
+- [x] Kyverno/Gatekeeper installed via ArgoCD.
+- [x] Basic policies applied (e.g., "Require Labels", "Disallow :latest tag", "Restrict HostPath").
 - [ ] Verify that a non-compliant pod is rejected by the admission controller.
 
 ### 3. Backup and Disaster Recovery
