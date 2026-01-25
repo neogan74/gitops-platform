@@ -158,94 +158,21 @@ spec:
     repoURL: https://github.com/neogan74/gitops-platform.git
     targetRevision: main
     path: platform/security/kyverno
-    # We point to the folder containing application.yaml, BUT application.yaml is an Application, not a helm chart.
-    # Wait, the way I defined platform/security/kyverno/application.yaml is an Application resource.
-    # Usually app-of-apps points to a folder that contains the Application resources?
-    # No, app-of-apps usually defines Application resources directly in it.
-    # Let me check the pattern in the repo.
-    # In this repo, app-of-apps.yaml contains a list of Application resources.
-    # Each Application resource points to a path like `platform/security/external-secrets`.
-    # And inside `platform/security/external-secrets` there is `application.yaml` which IS ALSO an Application resource?
-    # Let's check `platform/security/external-secrets/application.yaml`.
-    # It contains `kind: Application`.
-    # So `app-of-apps.yaml` defines an Application `platform-security-external-secrets` which points to path `platform/security/external-secrets`.
-    # And inside that path, there is `application.yaml`.
-    # ArgoCD will sync the files in that path. If the file is `application.yaml` (kind: Application), it's App-of-Apps pattern (nested).
-    # So `platform-security-external-secrets` creates another Application called `external-secrets`?
-    # Yes, `platform/security/external-secrets/application.yaml` has metadata.name `external-secrets`.
-    # So I should follow this pattern.
-
-    # My `platform/security/kyverno/application.yaml` has kind: Application.
-    # My `platform/security/kyverno/policies-app.yaml` has kind: Application.
-    
-    # So in `app-of-apps.yaml`, I just need to point to `platform/security/kyverno`?
-    # If I point to `platform/security/kyverno`, ArgoCD will pick up BOTH `application.yaml` and `policies-app.yaml`.
-    # So I only need ONE entry in `app-of-apps.yaml` pointing to `platform/security/kyverno`.
-    
-    # However, `platform/security/external-secrets` has `application.yaml` AND `secretstore.yaml`.
-    # `secretstore.yaml` is a ClusterSecretStore.
-    # `application.yaml` is the Application that installs the helm chart.
-    
-    # Wait, if `app-of-apps` points to `platform/security/external-secrets`, and that folder contains `application.yaml`,
-    # then the Application `platform-security-external-secrets` (in app-of-apps) will create the resource defined in `application.yaml`.
-    # That resource IS `kind: Application`.
-    # So it's an Application managing an Application. This is the App of Apps pattern.
-    
-    # So if I add an entry in `app-of-apps.yaml` pointing to `platform/security/kyverno`,
-    # it will apply all files in that directory.
-    # In that directory I have:
-    # 1. `application.yaml` (Application to install Kyverno)
-    # 2. `policies-app.yaml` (Application to install policies)
-    # 3. `policies/` (Directory)
-    
-    # If I point to `platform/security/kyverno`, it will apply `application.yaml` and `policies-app.yaml`.
-    # This seems correct.
-    
-    # Let's verify `app-of-apps.yaml` again.
-    # It has multiple Applications.
-    # Example:
-    # metadata:
-    #   name: platform-security-external-secrets
-    # spec:
-    #   path: platform/security/external-secrets
-    
-    # So I will add:
-    # metadata:
-    #   name: platform-security-kyverno
-    # spec:
-    #   path: platform/security/kyverno
-    
-    # This will sync `application.yaml` and `policies-app.yaml`.
-    # `application.yaml` will create an Application named `platform-security-kyverno` (wait, I named it `platform-security-kyverno` in the file too).
-    # This might cause a conflict or confusion if the names are the same?
-    # In `platform/security/external-secrets/application.yaml`: name is `external-secrets`.
-    # In `app-of-apps.yaml`: name is `platform-security-external-secrets`.
-    # So I should rename the Application in `platform/security/kyverno/application.yaml` to just `kyverno`?
-    # Let's check `platform/security/kyverno/application.yaml` again.
-    # I named it `platform-security-kyverno`.
-    # It's better to verify what I wrote.
-    # Step 52: I wrote `name: platform-security-kyverno`.
-    # I should probably change it to `kyverno` to match the pattern and avoid confusion, or keep it `platform-security-kyverno` if I want consistency with the filename?
-    # Actually, the Application in app-of-apps is named `platform-security-kyverno`.
-    # It manages the RESOURCES in `platform/security/kyverno`.
-    # One of those resources is an Application named `platform-security-kyverno`.
-    # So we have an Application named `platform-security-kyverno` (in argocd namespace) managing another Application named `platform-security-kyverno` (in argocd namespace)?
-    # That's invalid (duplicate names).
-    # The inner application usually installs the chart.
-    # Let's check `platform/security/external-secrets/application.yaml` again.
-    # Step 28: `name: external-secrets`.
-    # So the inner application has a simple name.
-    # I should rename `platform-security-kyverno` in `platform/security/kyverno/application.yaml` to `kyverno`.
-    # And `platform-security-kyverno-policies` in `platform/security/kyverno/policies-app.yaml` to `kyverno-policies`?
-    # I will do that as a correction.
-    
-    # But first, let's update `app-of-apps.yaml`.
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
 
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: platform-security-kyverno
+  name: platform-backup-recovery-minio
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -254,7 +181,31 @@ spec:
   source:
     repoURL: https://github.com/neogan74/gitops-platform.git
     targetRevision: main
-    path: platform/security/kyverno
+    path: platform/backup-recovery/minio
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-backup-recovery-velero
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/neogan74/gitops-platform.git
+    targetRevision: main
+    path: platform/backup-recovery/velero
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
