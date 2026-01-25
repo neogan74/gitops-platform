@@ -240,12 +240,21 @@ spec:
     # I will do that as a correction.
     
     # But first, let's update `app-of-apps.yaml`.
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
 
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: platform-security-kyverno
+  name: platform-backup-recovery-minio
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -254,7 +263,31 @@ spec:
   source:
     repoURL: https://github.com/neogan74/gitops-platform.git
     targetRevision: main
-    path: platform/security/kyverno
+    path: platform/backup-recovery/minio
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-backup-recovery-velero
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/neogan74/gitops-platform.git
+    targetRevision: main
+    path: platform/backup-recovery/velero
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

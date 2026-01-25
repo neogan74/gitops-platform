@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-backup-recovery-minio
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://charts.bitnami.com/bitnami
+    chart: minio
+    targetRevision: 12.8.14
+    helm:
+      releaseName: minio
+      values: |
+        auth:
+          rootUser: minio
+          rootPassword: minio123
+        defaultBuckets: "velero"
+        persistence:
+          enabled: true
+          size: 5Gi
+        resources:
+          requests:
+            memory: 256Mi
+            cpu: 100m
+          limits:
+            memory: 512Mi
+            cpu: 500m
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: backup-recovery
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
