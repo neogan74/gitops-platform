@@ -56,8 +56,8 @@ Understanding resource costs is a key SRE responsibility.
 - Implement **OpenCost** or **Kubecost**.
 
 **Acceptance Criteria:**
-- [ ] OpenCost installed via ArgoCD.
-- [ ] Dashboards visible in Grafana showing resource allocation/costs (even if using dummy pricing data).
+- [x] OpenCost installed via ArgoCD.
+- [x] Dashboards visible in Grafana showing resource allocation/costs (even if using dummy pricing data).
 
 ### 5. Chaos Engineering Integration
 **Description:**
@@ -90,3 +90,62 @@ Automate the generation of documentation from system state or component versions
 
 **Proposed Solution:**
 - Scripts to parse `Chart.yaml` or `kustomization.yaml` files and update a "Component Versions" table in README.
+
+## Phase 4: SLO Dashboards (Next Priority)
+
+### 8. SLO/SLI Implementation
+**Description:**
+Implement Service Level Objectives monitoring using the instrumented metrics from the demo application.
+
+**Proposed Solution:**
+- Create Grafana dashboards for SLO tracking.
+- Configure Prometheus rules for error budgets.
+
+**Acceptance Criteria:**
+- [ ] SLO overview dashboard created.
+- [ ] Error budget tracking enabled.
+- [ ] Service health monitoring visible.
+- [ ] Alerting rules configured.
+
+## Immediate Improvements
+
+### 9. Rollouts Visualization & Testing
+**Description:**
+Enhance the visibility of progressive delivery and verify the pipeline under load.
+
+**Acceptance Criteria:**
+- [ ] Install kubectl argo rollouts plugin.
+- [ ] Create Grafana dashboards for rollouts.
+- [ ] Test complete deployment pipeline.
+- [ ] Generate load for HPA testing.
+
+### 10. Security Alerting
+**Description:**
+Connect Falco events to an alerting channel.
+
+**Acceptance Criteria:**
+- [ ] Configure Falcosidekick alerts (Slack/PagerDuty).
+
+## Future Roadmap (Week 4+)
+
+### 11. Advanced Observability
+**Description:**
+Expand the observability stack beyond metrics.
+
+**Acceptance Criteria:**
+- [ ] Add Loki (Logs) to observability stack.
+- [ ] Add Tempo (Traces) to observability stack.
+- [ ] OpenTelemetry integration.
+
+### 12. Service Mesh Traffic Management
+**Description:**
+Utilize Istio for advanced traffic control beyond basic mTLS.
+
+**Acceptance Criteria:**
+- [ ] Implement advanced traffic shifting/splitting.
+- [ ] Circuit breaking and fault injection experiments.
+
+### 13. Advanced Platform Features
+**Acceptance Criteria:**
+- [ ] GitOps for applications directory refactoring.
+- [ ] Multi-cluster setup exploration.
