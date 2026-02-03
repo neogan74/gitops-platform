@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: chaos-experiments
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/neogan74/gitops-platform.git
+    targetRevision: main
+    path: platform/chaos-engineering/chaos-mesh/experiments
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: chaos-mesh
+  syncPolicy:
+    # Not using automated sync for experiments to avoid accidental activation
+    # Manual sync required to start experiments or apply changes
+    automated: 
+       prune: false
+       selfHeal: false
+    syncOptions:
+      - CreateNamespace=true

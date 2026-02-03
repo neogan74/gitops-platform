@@ -41,10 +41,10 @@ A production platform needs a strategy for backing up cluster state and persiste
 - Configure it to use MinIO (local S3 compatible storage) since this is a Kind-based lab.
 
 **Acceptance Criteria:**
-- [ ] MinIO installed and configured as a backup target.
-- [ ] Velero installed via ArgoCD.
-- [ ] Successful backup of a namespace.
-- [ ] Successful restore of the namespace after deletion.
+- [x] MinIO installed and configured as a backup target.
+- [x] Velero installed via ArgoCD.
+- [x] Successful backup of a namespace.
+- [x] Successful restore of the namespace after deletion.
 
 ## Medium Priority
 
