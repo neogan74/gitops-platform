@@ -1,0 +1,18 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-delay-demo
+  namespace: chaos-mesh
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - production
+    labelSelectors:
+      app: demo-app-go
+  delay:
+    latency: "100ms"
+    correlation: "50"
+    jitter: "20ms"
+  duration: "30s"

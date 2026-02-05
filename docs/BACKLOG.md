@@ -41,10 +41,10 @@ A production platform needs a strategy for backing up cluster state and persiste
 - Configure it to use MinIO (local S3 compatible storage) since this is a Kind-based lab.
 
 **Acceptance Criteria:**
-- [ ] MinIO installed and configured as a backup target.
-- [ ] Velero installed via ArgoCD.
-- [ ] Successful backup of a namespace.
-- [ ] Successful restore of the namespace after deletion.
+- [x] MinIO installed and configured as a backup target.
+- [x] Velero installed via ArgoCD.
+- [x] Successful backup of a namespace.
+- [x] Successful restore of the namespace after deletion.
 
 ## Medium Priority
 
@@ -67,9 +67,9 @@ To validate the reliability claims (Argo Rollouts, etc.), we should introduce co
 - Implement **Chaos Mesh** or **Litmus Chaos**.
 
 **Acceptance Criteria:**
-- [ ] Chaos tool installed via ArgoCD.
-- [ ] A "Pod Kill" experiment configured to run against the demo app.
-- [ ] Verify that Argo Rollouts/ReplicaSets handle the failure gracefully without downtime.
+- [x] Chaos tool installed via ArgoCD.
+- [x] A "Pod Kill" experiment configured to run against the demo app.
+- [x] Verify that Argo Rollouts/ReplicaSets handle the failure gracefully without downtime.
 
 ## Low Priority / Future Improvements
 
