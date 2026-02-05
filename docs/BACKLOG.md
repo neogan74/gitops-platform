@@ -67,9 +67,9 @@ To validate the reliability claims (Argo Rollouts, etc.), we should introduce co
 - Implement **Chaos Mesh** or **Litmus Chaos**.
 
 **Acceptance Criteria:**
-- [ ] Chaos tool installed via ArgoCD.
-- [ ] A "Pod Kill" experiment configured to run against the demo app.
-- [ ] Verify that Argo Rollouts/ReplicaSets handle the failure gracefully without downtime.
+- [x] Chaos tool installed via ArgoCD.
+- [x] A "Pod Kill" experiment configured to run against the demo app.
+- [x] Verify that Argo Rollouts/ReplicaSets handle the failure gracefully without downtime.
 
 ## Low Priority / Future Improvements
 
