@@ -81,7 +81,7 @@ Keep Helm charts and container images up to date automatically.
 - Configure **Renovate Bot** (self-hosted or config for GitHub App).
 
 **Acceptance Criteria:**
-- [ ] Renovate configuration file added to the repository.
+- [x] Renovate configuration file added to the repository.
 - [ ] (If self-hosted) Renovate cronjob running in the cluster checking for updates.
 
 ### 7. Documentation generator

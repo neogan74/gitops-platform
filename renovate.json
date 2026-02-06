@@ -1,0 +1,60 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits"
+  ],
+  "labels": ["dependencies", "renovate"],
+  "prHourlyLimit": 5,
+  "prConcurrentLimit": 10,
+  "timezone": "Europe/Berlin",
+  "schedule": ["before 9am on monday"],
+  "packageRules": [
+    {
+      "description": "Group Helm chart updates",
+      "matchManagers": ["helmv3", "helm-values"],
+      "groupName": "helm-charts",
+      "automerge": false
+    },
+    {
+      "description": "Group ArgoCD application chart version updates",
+      "matchManagers": ["regex"],
+      "matchPackagePatterns": ["^.*-helm-chart$"],
+      "groupName": "argocd-chart-versions",
+      "automerge": false
+    },
+    {
+      "description": "Automerge patch updates for container images",
+      "matchManagers": ["docker", "dockerfile"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr"
+    }
+  ],
+  "regexManagers": [
+    {
+      "description": "Update Helm chart dependencies in Chart.yaml",
+      "fileMatch": ["(^|/)Chart\\.yaml$"],
+      "matchStrings": [
+        "dependencies:\\n  - name: (?<depName>.*?)\\n    version: (?<currentValue>.*?)\\n    repository: (?<registryUrl>.*?)\\n"
+      ],
+      "datasourceTemplate": "helm"
+    },
+    {
+      "description": "Update ArgoCD Application targetRevision for Helm charts",
+      "fileMatch": ["(^|/).*application.*\\.yaml$"],
+      "matchStrings": [
+        "repoURL: (?<registryUrl>https://[^\\s]+\\.io/?[^\\s]*)\\s+chart: (?<depName>[^\\s]+)\\s+targetRevision: (?<currentValue>[^\\s]+)"
+      ],
+      "datasourceTemplate": "helm"
+    },
+    {
+      "description": "Update container images in Kubernetes manifests",
+      "fileMatch": ["(^|/)deployment\\.yaml$", "(^|/)rollout\\.yaml$"],
+      "matchStrings": [
+        "image: (?<depName>[^:]+):(?<currentValue>[^\\s]+)"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ]
+}
