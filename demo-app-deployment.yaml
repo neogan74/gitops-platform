@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  labels:
+    app: demo-app-go
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-app-go
+  template:
+    metadata:
+      labels:
+        app: demo-app-go
+    spec:
+      containers:
+      - name: demo-app
+        image: neogan74/demo-app-go:v1.0.0
+        ports:
+        - name: http
+          containerPort: 8080

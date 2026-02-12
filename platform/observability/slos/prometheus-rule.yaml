@@ -1,0 +1,104 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: demo-app-slos
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+  - name: demo-app.slos
+    rules:
+    # -------------------------------------------------------------------------
+    # Availability SLI: Ratio of successful requests (non-5xx)
+    # -------------------------------------------------------------------------
+    
+    # 1. Total requests per second
+    - record: job:http_requests_total:rate1m
+      expr: |
+        sum by (job, method, endpoint, status) (
+          label_replace(
+            rate(http_request_duration_seconds_count{job="demo-app-go"}[1m]),
+            "endpoint", "$1", "path", "(.*)"
+          )
+        )
+
+    # 2. Error requests per second (5xx)
+    - record: job:http_requests_error:rate1m
+      expr: |
+        sum by (job, method, endpoint, status) (
+          label_replace(
+            rate(http_request_duration_seconds_count{job="demo-app-go", status=~"5.."}[1m]),
+            "endpoint", "$1", "path", "(/api/v1/[^/]+).*|/.*"
+          )
+        )
+
+    # 3. Success Ratio (Availability)
+    # Formula: 1 - (errors / total)
+    # Using `vector(0)` handles the case where there are no errors (returns 0 instead of no data),
+    # but strictly speaking `error / total` is better.
+    # To be safe against division by zero:
+    - record: job:http_requests_success:ratio_rate1m
+      expr: |
+        1 - (
+          (job:http_requests_error:rate1m OR on() vector(0))
+          /
+          (job:http_requests_total:rate1m > 0)
+        )
+
+    # -------------------------------------------------------------------------
+    # Latency SLI: 99% of requests < 500ms (0.5s)
+    # -------------------------------------------------------------------------
+    
+    # 1. Requests served faster than 0.5s
+    - record: job:http_request_duration_seconds_bucket:rate1m_le0_5
+      expr: sum(rate(http_request_duration_seconds_bucket{job="demo-app-go", le="0.5"}[1m])) by (job)
+
+    # 2. Total requests (from histogram buckets)
+    - record: job:http_request_duration_seconds_bucket:rate1m_total
+      expr: sum(rate(http_request_duration_seconds_bucket{job="demo-app-go", le="+Inf"}[1m])) by (job)
+
+    # 3. Latency Success Ratio
+    - record: job:http_request_latency_success:ratio_rate1m
+      expr: |
+        (job:http_request_duration_seconds_bucket:rate1m_le0_5 OR on() vector(0))
+        /
+        (job:http_request_duration_seconds_bucket:rate1m_total > 0)
+
+  - name: demo-app.alerts
+    rules:
+    # -------------------------------------------------------------------------
+    # Error Budget Burn Alerts
+    # SLO: 99.9% Availability over 28d
+    # Error Budget: 0.1% (0.001)
+    #
+    # We alert on high burn rates.
+    # Burn Rate 14.4 (consume budget in 2 days) -> Page
+    # Burn Rate 6 (consume budget in 5 days) -> Ticket
+    # -------------------------------------------------------------------------
+
+    # High Burn Rate (Page) - 1h window > 14.4 * error_budget
+    # 14.4 * 0.001 = 0.0144 (1.44% error rate)
+    - alert: HighErrorBudgetBurn
+      expr: |
+        (1 - job:http_requests_success:ratio_rate1m) > (14.4 * 0.001)
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "High Error Budget Burn for Demo App"
+        description: "The demo app is burning its availability error budget at a high rate ({{ $value | humanizePercentage }} errors). 2-day depletion projected."
+
+    # High Latency Burn Rate (Page)
+    # SLO: 99% Latency < 500ms
+    # Error Budget: 1% (0.01)
+    # Threshold: 14.4 * 0.01 = 0.144 (14.4% of requests too slow)
+    - alert: HighLatencyBudgetBurn
+      expr: |
+        (1 - job:http_request_latency_success:ratio_rate1m) > (14.4 * 0.01)
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High Latency Budget Burn for Demo App"
+        description: "The demo app is serving too many slow requests ({{ $value | humanizePercentage }}). 2-day depletion projected."
