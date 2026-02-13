@@ -6,7 +6,8 @@ metadata:
     app: demo-app-go
 spec:
   metrics:
-  # Success rate metric - must be >= 99%
+  # Success rate metric — must be >= 99%
+  # Uses podinfo's http_request_duration_seconds_count as the request counter
   - name: success-rate
     interval: 30s
     count: 3
@@ -16,11 +17,13 @@ spec:
       prometheus:
         address: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
         query: |
-          sum(rate(http_requests_total{app="demo-app-go",status=~"2.."}[2m]))
-          /
-          sum(rate(http_requests_total{app="demo-app-go"}[2m]))
+          (
+            sum(rate(http_request_duration_seconds_count{job="demo-app-go",status=~"2.."}[2m]))
+            /
+            sum(rate(http_request_duration_seconds_count{job="demo-app-go"}[2m]))
+          ) or vector(1)
 
-  # p95 latency metric - must be < 500ms
+  # p95 latency metric — must be < 500ms
   - name: latency-p95
     interval: 30s
     count: 3
@@ -31,10 +34,10 @@ spec:
         address: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
         query: |
           histogram_quantile(0.95,
-            sum(rate(http_request_duration_seconds_bucket{app="demo-app-go"}[2m])) by (le)
-          )
+            sum(rate(http_request_duration_seconds_bucket{job="demo-app-go"}[2m])) by (le)
+          ) or vector(0)
 
-  # Error rate metric - must be < 1%
+  # Error rate metric — must be < 1%
   - name: error-rate
     interval: 30s
     count: 3
@@ -44,9 +47,11 @@ spec:
       prometheus:
         address: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
         query: |
-          sum(rate(http_requests_total{app="demo-app-go",status=~"5.."}[2m]))
-          /
-          sum(rate(http_requests_total{app="demo-app-go"}[2m]))
+          (
+            sum(rate(http_request_duration_seconds_count{job="demo-app-go",status=~"5.."}[2m]))
+            /
+            sum(rate(http_request_duration_seconds_count{job="demo-app-go"}[2m]))
+          ) or vector(0)
 
 ---
 apiVersion: argoproj.io/v1alpha1
@@ -67,8 +72,8 @@ spec:
       prometheus:
         address: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
         query: |
-          sum(rate(http_requests_total{app="demo-app-go",status=~"5.."}[2m]))
-          /
-          sum(rate(http_requests_total{app="demo-app-go"}[2m]))
-          or
-          vector(0)
+          (
+            sum(rate(http_request_duration_seconds_count{job="demo-app-go",status=~"5.."}[2m]))
+            /
+            sum(rate(http_request_duration_seconds_count{job="demo-app-go"}[2m]))
+          ) or vector(0)

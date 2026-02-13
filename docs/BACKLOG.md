@@ -114,10 +114,10 @@ Implement Service Level Objectives monitoring using the instrumented metrics fro
 Enhance the visibility of progressive delivery and verify the pipeline under load.
 
 **Acceptance Criteria:**
-- [ ] Install kubectl argo rollouts plugin.
-- [ ] Create Grafana dashboards for rollouts.
-- [ ] Test complete deployment pipeline.
-- [ ] Generate load for HPA testing.
+- [x] Install kubectl argo rollouts plugin.
+- [x] Create Grafana dashboards for rollouts.
+- [x] Test complete deployment pipeline.
+- [x] Generate load for HPA testing.
 
 ### 10. Security Alerting
 **Description:**

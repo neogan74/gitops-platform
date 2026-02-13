@@ -1,0 +1,174 @@
+---
+# ConfigMap with the load test script
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: load-test-script
+  namespace: default
+data:
+  load-test.sh: |
+    #!/bin/sh
+    set -e
+
+    TARGET_URL="${TARGET_URL:-http://demo-app-go}"
+    DURATION="${DURATION:-120}"
+    CONCURRENCY="${CONCURRENCY:-10}"
+    RPS="${RPS:-50}"
+    ERROR_RATIO="${ERROR_RATIO:-0.05}"
+
+    echo "============================================"
+    echo "  Load Test Configuration"
+    echo "============================================"
+    echo "  Target URL:    ${TARGET_URL}"
+    echo "  Duration:      ${DURATION}s"
+    echo "  Concurrency:   ${CONCURRENCY} workers"
+    echo "  Target RPS:    ${RPS}"
+    echo "  Error Ratio:   ${ERROR_RATIO}"
+    echo "============================================"
+    echo ""
+
+    SLEEP_INTERVAL=$(echo "scale=4; $CONCURRENCY / $RPS" | bc)
+
+    END_TIME=$(($(date +%s) + DURATION))
+    TOTAL_OK=0
+    TOTAL_ERR=0
+
+    echo "[$(date '+%H:%M:%S')] Starting load generation..."
+
+    while [ "$(date +%s)" -lt "$END_TIME" ]; do
+      # Determine if this request should be an error
+      RAND=$(awk 'BEGIN{srand(); print rand()}')
+      if [ "$(echo "$RAND < $ERROR_RATIO" | bc -l)" -eq 1 ]; then
+        # Generate error request
+        STATUS=$(wget -q -O /dev/null -S "${TARGET_URL}/status/500" 2>&1 | grep "HTTP/" | tail -1 | awk '{print $2}' || echo "000")
+        TOTAL_ERR=$((TOTAL_ERR + 1))
+      else
+        # Generate normal request with varied endpoints
+        RAND_ENDPOINT=$(awk 'BEGIN{srand(); print int(rand()*5)}')
+        case $RAND_ENDPOINT in
+          0) ENDPOINT="/" ;;
+          1) ENDPOINT="/healthz" ;;
+          2) ENDPOINT="/readyz" ;;
+          3) ENDPOINT="/api/info" ;;
+          *) ENDPOINT="/" ;;
+        esac
+        STATUS=$(wget -q -O /dev/null -S "${TARGET_URL}${ENDPOINT}" 2>&1 | grep "HTTP/" | tail -1 | awk '{print $2}' || echo "000")
+        TOTAL_OK=$((TOTAL_OK + 1))
+      fi
+
+      sleep "$SLEEP_INTERVAL"
+    done
+
+    echo ""
+    echo "============================================"
+    echo "  Load Test Results"
+    echo "============================================"
+    echo "  Total OK requests:     ${TOTAL_OK}"
+    echo "  Total Error requests:  ${TOTAL_ERR}"
+    echo "  Total requests:        $((TOTAL_OK + TOTAL_ERR))"
+    echo "============================================"
+    echo "[$(date '+%H:%M:%S')] Load test completed."
+
+---
+# The load test Job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: load-test
+  namespace: default
+  labels:
+    app: load-test
+    purpose: hpa-testing
+spec:
+  parallelism: 3
+  completions: 3
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: load-test
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: load-generator
+        image: busybox:1.36
+        command: ["sh", "/scripts/load-test.sh"]
+        env:
+        - name: TARGET_URL
+          value: "http://demo-app-go"
+        - name: DURATION
+          value: "300"           # 5 minutes
+        - name: CONCURRENCY
+          value: "10"
+        - name: RPS
+          value: "50"
+        - name: ERROR_RATIO
+          value: "0.02"          # 2% errors
+        resources:
+          requests:
+            cpu: 50m
+            memory: 32Mi
+          limits:
+            cpu: 200m
+            memory: 64Mi
+        volumeMounts:
+        - name: script
+          mountPath: /scripts
+      volumes:
+      - name: script
+        configMap:
+          name: load-test-script
+          defaultMode: 0755
+
+---
+# Heavy load variant for triggering HPA scale-up
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: load-test-heavy
+  namespace: default
+  labels:
+    app: load-test-heavy
+    purpose: hpa-testing
+spec:
+  parallelism: 10
+  completions: 10
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: load-test-heavy
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: load-generator
+        image: busybox:1.36
+        command: ["sh", "/scripts/load-test.sh"]
+        env:
+        - name: TARGET_URL
+          value: "http://demo-app-go"
+        - name: DURATION
+          value: "600"           # 10 minutes
+        - name: CONCURRENCY
+          value: "20"
+        - name: RPS
+          value: "200"
+        - name: ERROR_RATIO
+          value: "0.01"          # 1% errors
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 300m
+            memory: 128Mi
+        volumeMounts:
+        - name: script
+          mountPath: /scripts
+      volumes:
+      - name: script
+        configMap:
+          name: load-test-script
+          defaultMode: 0755
