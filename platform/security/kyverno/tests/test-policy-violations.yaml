@@ -1,0 +1,71 @@
+# Kyverno Policy Verification Test Manifests
+#
+# These pods are INTENTIONALLY non-compliant.
+# They are meant to be REJECTED by the admission controller.
+# DO NOT apply these with `kubectl apply -f` — use the verify script instead.
+
+---
+# Test 1: Disallow Latest Tag
+# Expected: REJECTED — uses nginx:latest
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-latest-tag
+  namespace: default
+  labels:
+    app: policy-test
+spec:
+  containers:
+    - name: nginx
+      image: nginx:latest
+
+---
+# Test 2: Require Labels
+# Expected: REJECTED — missing the 'app' label
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-missing-labels
+  namespace: default
+spec:
+  containers:
+    - name: nginx
+      image: nginx:1.27
+
+---
+# Test 3: Restrict Host Path
+# Expected: REJECTED — uses hostPath volume
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-host-path
+  namespace: default
+  labels:
+    app: policy-test
+spec:
+  containers:
+    - name: nginx
+      image: nginx:1.27
+      volumeMounts:
+        - name: host-vol
+          mountPath: /host-data
+  volumes:
+    - name: host-vol
+      hostPath:
+        path: /tmp
+        type: Directory
+
+---
+# Test 4: Compliant Pod (control test)
+# Expected: ALLOWED — meets all policy requirements
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-compliant-pod
+  namespace: default
+  labels:
+    app: policy-test
+spec:
+  containers:
+    - name: nginx
+      image: nginx:1.27
