@@ -1,0 +1,593 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argo-rollouts-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+    release: kube-prometheus-stack
+data:
+  argo-rollouts.json: |
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": {
+              "type": "grafana",
+              "uid": "-- Grafana --"
+            },
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+      },
+      "description": "Argo Rollouts progressive delivery monitoring — canary/blue-green phases, analysis runs, and rollout health",
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+          "id": 100,
+          "title": "Rollout Overview",
+          "type": "row"
+        },
+        {
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+          "id": 1,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.1.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "count(rollout_info{namespace=~\"$namespace\"})",
+              "legendFormat": "Total Rollouts",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Total Rollouts",
+          "type": "stat"
+        },
+        {
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+          "id": 2,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 1 }
+                ]
+              }
+            }
+          },
+          "pluginVersion": "10.1.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "count(rollout_info{namespace=~\"$namespace\"} == 0) or vector(0)",
+              "legendFormat": "Degraded",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Degraded Rollouts",
+          "type": "stat"
+        },
+        {
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+          "id": 3,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.1.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "count(analysis_run_info{namespace=~\"$namespace\",phase=\"Running\"}) or vector(0)",
+              "legendFormat": "Running",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Active Analysis Runs",
+          "type": "stat"
+        },
+        {
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+          "id": 4,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 1 }
+                ]
+              }
+            }
+          },
+          "pluginVersion": "10.1.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "count(analysis_run_info{namespace=~\"$namespace\",phase=\"Error\"}) or vector(0)",
+              "legendFormat": "Failed",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Failed Analysis Runs",
+          "type": "stat"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+          "id": 101,
+          "title": "Rollout Phase & Replicas",
+          "type": "row"
+        },
+        {
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+          "id": 5,
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisLabel": "Replicas",
+                "drawStyle": "line",
+                "fillOpacity": 20,
+                "lineWidth": 2,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "stacking": { "mode": "none" }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": { "id": "byName", "options": "Desired" },
+                "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+              },
+              {
+                "matcher": { "id": "byName", "options": "Available" },
+                "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+              },
+              {
+                "matcher": { "id": "byName", "options": "Updated" },
+                "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }]
+              }
+            ]
+          },
+          "options": {
+            "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "multi", "sort": "none" }
+          },
+          "pluginVersion": "10.1.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "rollout_info_replicas_desired{namespace=~\"$namespace\",rollout=~\"$rollout\"}",
+              "legendFormat": "Desired",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "rollout_info_replicas_available{namespace=~\"$namespace\",rollout=~\"$rollout\"}",
+              "legendFormat": "Available",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "rollout_info_replicas_updated{namespace=~\"$namespace\",rollout=~\"$rollout\"}",
+              "legendFormat": "Updated",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "Rollout Replicas — $rollout",
+          "type": "timeseries"
+        },
+        {
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+          "id": 6,
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisLabel": "Phase",
+                "drawStyle": "bars",
+                "fillOpacity": 80,
+                "lineWidth": 1,
+                "showPoints": "never",
+                "stacking": { "mode": "normal" }
+              }
+            }
+          },
+          "options": {
+            "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "multi", "sort": "none" }
+          },
+          "pluginVersion": "10.1.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "rollout_phase{namespace=~\"$namespace\",rollout=~\"$rollout\",phase=\"Healthy\"}",
+              "legendFormat": "Healthy",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "rollout_phase{namespace=~\"$namespace\",rollout=~\"$rollout\",phase=\"Progressing\"}",
+              "legendFormat": "Progressing",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "rollout_phase{namespace=~\"$namespace\",rollout=~\"$rollout\",phase=\"Paused\"}",
+              "legendFormat": "Paused",
+              "range": true,
+              "refId": "C"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "rollout_phase{namespace=~\"$namespace\",rollout=~\"$rollout\",phase=\"Degraded\"}",
+              "legendFormat": "Degraded",
+              "range": true,
+              "refId": "D"
+            }
+          ],
+          "title": "Rollout Phase — $rollout",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+          "id": 102,
+          "title": "Canary Metrics",
+          "type": "row"
+        },
+        {
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+          "id": 7,
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisLabel": "Weight %",
+                "drawStyle": "line",
+                "fillOpacity": 30,
+                "lineWidth": 2,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "stacking": { "mode": "none" }
+              },
+              "max": 100,
+              "min": 0,
+              "unit": "percent"
+            }
+          },
+          "options": {
+            "legend": { "calcs": ["lastNotNull"], "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "single", "sort": "none" }
+          },
+          "pluginVersion": "10.1.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "rollout_info_replicas_canary{namespace=~\"$namespace\",rollout=~\"$rollout\"} / rollout_info_replicas_desired{namespace=~\"$namespace\",rollout=~\"$rollout\"} * 100",
+              "legendFormat": "Canary Weight",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Canary Traffic Weight — $rollout",
+          "type": "timeseries"
+        },
+        {
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+          "id": 8,
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisLabel": "Duration (s)",
+                "drawStyle": "bars",
+                "fillOpacity": 60,
+                "lineWidth": 1,
+                "showPoints": "never",
+                "stacking": { "mode": "none" }
+              },
+              "unit": "s"
+            }
+          },
+          "options": {
+            "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+            "tooltip": { "mode": "single", "sort": "none" }
+          },
+          "pluginVersion": "10.1.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "rate(rollout_reconcile_duration_seconds_sum{namespace=~\"$namespace\"}[5m]) / rate(rollout_reconcile_duration_seconds_count{namespace=~\"$namespace\"}[5m])",
+              "legendFormat": "{{rollout}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Rollout Reconcile Duration",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+          "id": 103,
+          "title": "Controller Health",
+          "type": "row"
+        },
+        {
+          "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
+          "id": 9,
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "lineWidth": 2,
+                "showPoints": "never",
+                "stacking": { "mode": "none" }
+              },
+              "unit": "ops"
+            }
+          },
+          "options": {
+            "legend": { "calcs": ["mean"], "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "multi", "sort": "none" }
+          },
+          "pluginVersion": "10.1.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "sum(rate(rollout_reconcile_duration_seconds_count[5m]))",
+              "legendFormat": "Reconcile Rate",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Reconciliation Rate",
+          "type": "timeseries"
+        },
+        {
+          "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
+          "id": 10,
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "lineWidth": 2,
+                "showPoints": "never",
+                "stacking": { "mode": "none" }
+              },
+              "unit": "ops"
+            }
+          },
+          "options": {
+            "legend": { "calcs": ["mean"], "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "multi", "sort": "none" }
+          },
+          "pluginVersion": "10.1.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "sum(rate(rollout_reconcile_error[5m]))",
+              "legendFormat": "Reconcile Errors",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Reconciliation Errors",
+          "type": "timeseries"
+        },
+        {
+          "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
+          "id": 11,
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "lineWidth": 2,
+                "showPoints": "never",
+                "stacking": { "mode": "none" }
+              },
+              "unit": "short"
+            }
+          },
+          "options": {
+            "legend": { "calcs": ["lastNotNull"], "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "multi", "sort": "none" }
+          },
+          "pluginVersion": "10.1.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "workqueue_depth{name=\"rollout\"}",
+              "legendFormat": "Rollout Queue",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "workqueue_depth{name=\"analysis\"}",
+              "legendFormat": "Analysis Queue",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "editorMode": "code",
+              "expr": "workqueue_depth{name=\"experiment\"}",
+              "legendFormat": "Experiment Queue",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "Controller Work Queue Depth",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "30s",
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": [
+        "argo-rollouts",
+        "progressive-delivery",
+        "canary",
+        "blue-green"
+      ],
+      "templating": {
+        "list": [
+          {
+            "current": { "selected": false, "text": "Prometheus", "value": "Prometheus" },
+            "hide": 0,
+            "includeAll": false,
+            "label": "Datasource",
+            "multi": false,
+            "name": "datasource",
+            "options": [],
+            "query": "prometheus",
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": false,
+            "type": "datasource"
+          },
+          {
+            "current": {},
+            "datasource": { "type": "prometheus", "uid": "${datasource}" },
+            "definition": "label_values(rollout_info, namespace)",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Namespace",
+            "multi": false,
+            "name": "namespace",
+            "query": { "query": "label_values(rollout_info, namespace)", "refId": "namespace" },
+            "refresh": 2,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 1,
+            "type": "query"
+          },
+          {
+            "current": {},
+            "datasource": { "type": "prometheus", "uid": "${datasource}" },
+            "definition": "label_values(rollout_info{namespace=~\"$namespace\"}, rollout)",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Rollout",
+            "multi": false,
+            "name": "rollout",
+            "query": { "query": "label_values(rollout_info{namespace=~\"$namespace\"}, rollout)", "refId": "rollout" },
+            "refresh": 2,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 1,
+            "type": "query"
+          }
+        ]
+      },
+      "time": { "from": "now-3h", "to": "now" },
+      "timepicker": {},
+      "timezone": "",
+      "title": "Argo Rollouts — Progressive Delivery",
+      "uid": "argo-rollouts-overview",
+      "version": 1,
+      "weekStart": ""
+    }
